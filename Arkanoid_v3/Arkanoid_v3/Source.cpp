@@ -2,14 +2,21 @@
 #include <cstdlib>
 #include <vector>
 #include <queue>
-#include <windows.h> // COORD, SetConsoleCursorPosition(), Sleep() 
+#include <windows.h>
+#include <string> // getline()
 #include <cstdio>
 #include <conio.h>
 #include <ctime>
+#include <fstream>
 
 using namespace std;
 
 const int WYGRANA = -1;
+
+struct record {
+	string name;
+	int score;
+};
 
 void przesunkursor(int x, int y)
 {
@@ -91,23 +98,26 @@ void rysuj(vector<queue<char> > Plansza, int gracz, int w)
 
 
 
-void aktualizujplansze(vector<queue<char> > &Plansza, int r, int n, int &iloscruchowpoprzesunieciu, int &rnd)
+void aktualizujplansze(vector<queue<char> > &Plansza, int r, int n, int &iloscruchowpoprzesunieciu, int &rnd) // wskazuję na adresy tych zmiennych bo chcę operować na oryginałach, nie kopiach
 {
-	if (iloscruchowpoprzesunieciu >= r + rnd)
+	if (iloscruchowpoprzesunieciu > r + rnd)
 	{
 		for (int i = 0; i < Plansza.size(); i++)
 		{
 			wstawblok(Plansza[i]);
 		}
 		iloscruchowpoprzesunieciu = 0;
-		rnd = rand() % n;
+		if (n == 0)
+			rnd = 0;
+		else
+			rnd = rand() % n;
 	}
 }
 
-int gra(int w, int k, int b, int r, int n)	// w = liczba wierszy w planszy;	k = liczba kolumn w planszy;	b = liczba wieszy blokow na poczatku gry 
-{											// r i n = bloki zejdą o krok niżej po liczbie ruchów określonej przez wzór r + n 
-											// (n to bonus czasowy od 0 do wartości podanej jako 'n' przed grą)
-	vector<queue<char> > Plansza;	// tworze vector (= tablice) kolejek charow
+int gra(int w, int k, int b, int r, int n)
+{
+
+	vector<queue<char> > Plansza;
 	for (int i = 0; i < k; i++)
 	{
 		Plansza.push_back(queue<char>());
@@ -123,7 +133,11 @@ int gra(int w, int k, int b, int r, int n)	// w = liczba wierszy w planszy;	k = 
 
 	int iloscruchowpoprzesunieciu = 0;
 	int iloscruchow = 0;
-	int rnd = rand() % n;
+	int rnd;
+	if (n == 0)
+		rnd = 0;
+	else
+		rnd = rand() % n;
 	bool win = false;
 	do
 	{
@@ -185,6 +199,109 @@ int gra(int w, int k, int b, int r, int n)	// w = liczba wierszy w planszy;	k = 
 	return iloscruchow;
 }
 
+void displayRanking()
+{
+	ifstream file;
+
+	file.open("RANKING.txt", ios::in);
+
+	if (file.good() == false){
+		cout << "Plik ''RANKING'' nie istnieje" << endl;
+		system("pause");
+	}
+	else {
+		record ranking[10];
+		string line;
+		int lineNumber = 1;
+		int iterator = 0;					// loading records data from RANKING.txt
+		while (getline(file, line)) {
+			
+			switch (lineNumber) {
+			case 1:
+				ranking[iterator].name = line;
+			case 2:
+				ranking[iterator].score = atoi(line.c_str());
+			}
+			if (lineNumber == 2) {
+				lineNumber = 0;
+				iterator++;
+			}
+			lineNumber++;
+		}
+
+		for (int i = 0; i < 10; i++) {
+			cout << "name: " << ranking[i].name << "\tscore: " << ranking[i].score << endl;
+		}
+		system("pause");
+	}
+	file.close();
+}
+
+void newRecord(string name, int score) {
+											// setting a new record after a standard game
+	fstream file;
+	file.open("RANKING.txt", ios::in || ios::out);
+
+	if (file.good() == false) {
+		cout << "\n\t failed to open the RANKING.txt file\n";
+		system("pause");
+	}
+	else {
+		record ranking[10];
+		string line;
+		int lineNumber = 1;
+		int iterator = 0;					// loading records data from RANKING.txt
+		while (getline(file, line)) {
+
+			switch (lineNumber) {
+			case 1:
+				ranking[iterator].name = line;
+			case 2:
+				ranking[iterator].score = atoi(line.c_str());
+			}
+			if (lineNumber == 2) {
+				lineNumber = 0;
+				iterator++;
+			}
+			lineNumber++;
+		}
+
+		record player;
+		player.name = name;
+		player.score = score;
+
+		if (player.score > ranking[9].score) {
+
+			for (int i = 8; i >= 0; i--) {
+				if (player.score <= ranking[i].score) {
+					for (int j = 9; j > i; j--) {
+						ranking[j] = ranking[j - 1];
+					}
+					ranking[i - 1] = player;
+					break;
+				}
+				if (player.score > ranking[0].score) {
+					for (int k = 9; k > 0; k--) {
+						ranking[k] = ranking[k - 1];
+					}
+					ranking[0] = player;
+					break;
+				}
+			}
+		}
+
+		for (int i = 0; i < 10; i++) {
+			file << ranking[i].name << endl;
+			file << ranking[i].score << endl;
+		}
+
+		
+
+	}
+	file.close();
+
+}
+
 int main()
 {
 	srand(time(NULL));
@@ -196,6 +313,7 @@ int main()
 		cout << "   1. Play the game  " << endl;
 		cout << "   2. Credits & Authors  " << endl;
 		cout << "   3. Options  " << endl;
+		cout << "   4. Ranking  " << endl;
 		cout << "   0. Exit  " << endl;
 		cout << "   ------- ---- -------  " << endl;
 		cout << "What would you like to do? :";
@@ -205,62 +323,110 @@ int main()
 		{
 			system("cls");
 
-			int w; //liczba wierszy
-			int k; //liczba kolumn
-			int b; //poczatkowa liczba bloków w ka¿dej kolumnie
-			int r;	// bloki zejdą o krok niżej po liczbie ruchów określonej przez wzór r + n
-			int n;	// n to bonus czasowy od 0 do wartości podanej jako 'n' przed grą
-			cout << " Witaj Graczu! " << endl << "Podaj rozmiary planszy na jakiej chcesz grac:" << endl << " Ilosc wierszy:  ";
-			cin >> w;
-			cout << endl << "Ilosc kolumn:  ";
-			cin >> k;
-			cout << endl << "Poczatkowa ilosc blokow w kazdej kolumnie:  ";
-			cin >> b;
-			cout << endl << "po ilu ruchach conajmniej schodzodza bloki?:  ";
-			cin >> r;
-			cout << endl << "maxymalny bonus czasu :  ";
-			cin >> n;
-			n++;
-			while (b >= w)
+			cout << " Witaj Graczu!" << endl << "Wybierz TRYB GRY:" << endl << endl << "    1. Standard game" << endl << "    2. Wlasna gra" << endl;
+			int trybgry;
+			do
 			{
+				cin >> trybgry;
+				if (trybgry == 1)
+				{
+					system("cls");
+					int k = 7; //kolumny
+					int w = 10; //wiersze
+					int b = 3; //bloki na poczatku
+					int r = 3;
+					int n = 4;
+					cout << " Witaj Graczu!" << endl << "   Standard game is a game with:" << endl << "   " << k << " kolumn" << endl << "   " << w << " wierszy" << endl << "   " << b << " blokow na poczatku" << endl << "NACISNIJ ENTER JESLI ROZUMIESZ" << endl;
+					system("pause");
+					int wynik = gra(w, k, b, r+1, n);
+					if (wynik == WYGRANA)
+					{
+						cout << endl << "-----------------------------" << endl << endl << "     WYGRANA!!!      " << endl << endl;
+					}
+					else {
+						cout << endl << "-----------------------------" << endl << endl << "     WYNIK = " << wynik << endl << endl;
+						string name;
+						cout << "Zapisz swoj wynik:\n\tTwoje imie: ";
+						cin >> name;
+						newRecord(name, wynik);
+					}
+						
 
-				cout << "liczba blokow na poczatku nie moze byc wieksza od liczby wierszy" << endl << "Jeszcze raz podaj ilosc blokow na poczatku:    ";
-				cin >> b;
+				}
+				if (trybgry == 2)
+				{
+					system("cls");
+					int w; //liczba wierszy
+					int k; //liczba kolumn
+					int b; //poczatkowa liczba bloków w ka¿dej kolumnie
+					int r;
+					int n;
+					cout << " Witaj Graczu! " << endl << "Podaj rozmiary planszy na jakiej chcesz grac:" << endl << " Ilosc wierszy:  ";
+					cin >> w;
+					cout << endl << "Ilosc kolumn:  ";
+					cin >> k;
+					cout << endl << "Poczatkowa ilosc blokow w kazdej kolumnie:  ";
+					cin >> b;
+					cout << endl << "po ilu ruchach conajmniej schodzodza bloki?:  ";
+					cin >> r;
+					r++;
+					cout << endl << "maxymalny bonus czasu :  ";
+					cin >> n;
+					n++;
+					while (b >= w)
+					{
 
-			}
+						cout << "liczba blokow na poczatku nie moze byc wieksza od liczby wierszy" << endl << "Jeszcze raz podaj ilosc blokow na poczatku:    ";
+						cin >> b;
 
-			int wynik = gra(w, k, b, r, n);
-			if (wynik == WYGRANA)
-			{
-				cout << endl << "-----------------------------" << endl << endl << "     WYGRANA!!!      " << endl << endl;
-			}
-			else
-				cout << endl << "-----------------------------" << endl << endl << "     WYNIK = " << wynik << endl << endl;
+					}
 
-			//            Player(k);
+					int wynik = gra(w, k, b, r, n);
+					if (wynik == WYGRANA)
+					{
+						cout << endl << "-----------------------------" << endl << endl << "     WYGRANA!!!      " << endl << endl;
+					}
+					else
+						cout << endl << "-----------------------------" << endl << endl << "     WYNIK = " << wynik << endl << endl;
 
+				}
+				else if (trybgry != 1 && trybgry != 2)
+				{
+					cout << "Nie ma takiego numeru trybu. Wybierz 1 lub 2!" << endl;
+				}
+
+			} while (trybgry != 1 && trybgry != 2);
+
+
+			system("pause");
 			system("pause");
 		}
 		else if (wybor == 2)
 		{
 			cout << endl;
 			cout << "        . -----=====||||=====----- .           " << endl;
-			cout << " This game was made by Marek Mikulski " << endl;
+			cout << "	 This game was made by Marek Mikulski " << endl;
 			cout << "          -----=====||||=====-----            " << endl;
 			cout << endl;
 			system("pause");
 		}
 		else if (wybor == 3)
 		{
-			cout << endl << "There are no options actually..." << endl;
+			cout << endl << "There are no options yet..." << endl;
 			cout << "I'm sorry" << endl << endl;
 			system("pause");
 		}
-		else if (wybor != 1 && wybor != 2 && wybor != 3 && wybor != 0)
+		else if (wybor == 4)
+		{
+			system("cls");
+			displayRanking();
+		}
+		else if (wybor != 1 && wybor != 2 && wybor != 3 && wybor != 4 && wybor != 0)
 		{
 			cout << endl << " Nie ma takiego numeru w menu" << endl;
 			system("pause");
 		}
+
 	} while (wybor != 0);
 	cout << endl << endl << "   Do zobaczenia :)    " << endl << endl;
 	Sleep(1000);
