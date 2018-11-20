@@ -240,13 +240,14 @@ void displayRanking()
 void newRecord(string name, int score) {
 											// setting a new record after a standard game
 	fstream file;
-	file.open("RANKING.txt", ios::in || ios::out);
+	file.open("RANKING.txt", ios::in);
 
 	if (file.good() == false) {
 		cout << "\n\t failed to open the RANKING.txt file\n";
 		system("pause");
 	}
 	else {
+		cout << "\n\t opened the RANKING.txt file\n";
 		record ranking[10];
 		string line;
 		int lineNumber = 1;
@@ -265,38 +266,38 @@ void newRecord(string name, int score) {
 			}
 			lineNumber++;
 		}
+		file.close();
 
 		record player;
 		player.name = name;
 		player.score = score;
+		cout << "\n\t player name: "<<player.name<<" score: "<<player.score<<endl;
+		cout << "\n\t ranking[9] name: " << ranking[9].name << " score: " << ranking[9].score << endl;
 
 		if (player.score > ranking[9].score) {
+			ranking[9] = player;
+		}
 
-			for (int i = 8; i >= 0; i--) {
-				if (player.score <= ranking[i].score) {
-					for (int j = 9; j > i; j--) {
-						ranking[j] = ranking[j - 1];
-					}
-					ranking[i - 1] = player;
-					break;
-				}
-				if (player.score > ranking[0].score) {
-					for (int k = 9; k > 0; k--) {
-						ranking[k] = ranking[k - 1];
-					}
-					ranking[0] = player;
-					break;
-				}
+		cout << "\n\t after the change" << endl;
+		cout << "\n\t ranking[9] name: " << ranking[9].name << " score: " << ranking[9].score << endl;
+
+		
+		record temporary;
+		for (int i = 9; i > 0; i--) {
+			if (ranking[i].score > ranking[i - 1].score) {
+				temporary = ranking[i];
+				ranking[i] = ranking[i - 1];
+				ranking[i - 1] = temporary;
 			}
 		}
 
+		file.open("RANKING.txt", ios::out);
+		
 		for (int i = 0; i < 10; i++) {
+			cout << "\n\t saving ranking["<<i<<"] name: " << ranking[i].name << " score: " << ranking[i].score << endl;
 			file << ranking[i].name << endl;
 			file << ranking[i].score << endl;
 		}
-
-		
-
 	}
 	file.close();
 
